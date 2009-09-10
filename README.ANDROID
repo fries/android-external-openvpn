@@ -1,0 +1,8 @@
+
+2009-09-09 Added Android.mk and fixed config.h
+           fries@desert.lnp.org
+
+	openvpn currently looks for tun in /dev/net/tub
+        but the device file might be found under /den/tun
+        on android devices
+
