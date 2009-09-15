@@ -35,7 +35,7 @@
 #define ENABLE_MULTIHOME 1
 
 /* Allow --askpass and --auth-user-pass passwords to be read from a file */
-/* #undef ENABLE_PASSWORD_SAVE */
+#define ENABLE_PASSWORD_SAVE 1
 
 /* Enable TCP Server port sharing */
 #define ENABLE_PORT_SHARE 1
