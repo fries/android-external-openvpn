@@ -81,23 +81,23 @@ ifneq ($(TARGET_SIMULATOR),true)
 	common_SHARED_LIBRARIES += libdl
 endif
 
-# static linked binary
-# =====================================================
-
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES:= $(common_SRC_FILES)
-LOCAL_CFLAGS:= $(common_CFLAGS)
-LOCAL_C_INCLUDES:= $(common_C_INCLUDES)
-
-LOCAL_SHARED_LIBRARIES += $(common_SHARED_LIBRARIES)
-LOCAL_STATIC_LIBRARIES:= libopenssl-static liblzo-static
-
-#LOCAL_LDLIBS += -ldl
-#LOCAL_PRELINK_MODULE:= false
-
-LOCAL_MODULE:= openvpn-static
-LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
-include $(BUILD_EXECUTABLE)
+## static linked binary
+## =====================================================
+#
+#include $(CLEAR_VARS)
+#LOCAL_SRC_FILES:= $(common_SRC_FILES)
+#LOCAL_CFLAGS:= $(common_CFLAGS)
+#LOCAL_C_INCLUDES:= $(common_C_INCLUDES)
+#
+#LOCAL_SHARED_LIBRARIES += $(common_SHARED_LIBRARIES)
+#LOCAL_STATIC_LIBRARIES:= libopenssl-static liblzo-static
+#
+##LOCAL_LDLIBS += -ldl
+##LOCAL_PRELINK_MODULE:= false
+#
+#LOCAL_MODULE:= openvpn-static
+#LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
+#include $(BUILD_EXECUTABLE)
 
 # dynamic linked binary
 # =====================================================
