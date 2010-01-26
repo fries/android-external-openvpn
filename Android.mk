@@ -4,6 +4,7 @@ LOCAL_PATH:= $(call my-dir)
 #from generated Makefile copy variable contents of openvpn_SOURCES to common_SRC_FILES
 # append missing.c to the end of the list
 # missing.c defines undefined functions.
+# in tun.c replace /dev/net/tun with /dev/tun
 
 common_SRC_FILES:= \
         base64.c base64.h \

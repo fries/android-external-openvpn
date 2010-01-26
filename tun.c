@@ -1096,7 +1096,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
        */
       const char *node = dev_node;
       if (!node)
-	node = "/dev/net/tun";
+	node = "/dev/tun";
 
       /*
        * Open the interface
