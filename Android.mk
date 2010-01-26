@@ -1,6 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 
-#on a 32bit maschine run ./configure --enable-password-save --enable-iproute2 --disable-pkcs11 --with-ifconfig-path=/system/bin --with-iproute-path=/system/bin --with-route-path=/system/bin
+#on a 32bit maschine run ./configure --enable-password-save --disable-pkcs11 --with-ifconfig-path=/system/bin/ifconfig --with-route-path=/system/bin/route
 #from generated Makefile copy variable contents of openvpn_SOURCES to common_SRC_FILES
 # append missing.c to the end of the list
 # missing.c defines undefined functions.

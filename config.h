@@ -8,7 +8,7 @@
 #define CONFIGURE_PF 1
 
 /* enable iproute2 support */
-#define CONFIG_FEATURE_IPROUTE 1
+/* #undef CONFIG_FEATURE_IPROUTE */
 
 /* Use memory debugging function in OpenSSL */
 /* #undef CRYPTO_MDEBUG */
@@ -425,10 +425,10 @@
 #define HAVE_WRITEV 1
 
 /* Path to ifconfig tool */
-#define IFCONFIG_PATH "/system/bin"
+#define IFCONFIG_PATH "/system/bin/ifconfig"
 
 /* Path to iproute tool */
-#define IPROUTE_PATH "/system/bin"
+#define IPROUTE_PATH "ip"
 
 /* Use lzo/ directory prefix for LZO header files (for LZO 2.0) */
 #define LZO_HEADER_DIR 1
@@ -462,7 +462,7 @@
 #define RETSIGTYPE void
 
 /* Path to route tool */
-#define ROUTE_PATH "/system/bin"
+#define ROUTE_PATH "/system/bin/route"
 
 /* The size of `unsigned int', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_INT 4
