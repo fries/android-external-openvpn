@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -502,6 +502,10 @@ multi_close_instance (struct multi_context *m,
   mi->halt = true;
 
   dmsg (D_MULTI_DEBUG, "MULTI: multi_close_instance called");
+
+  /* adjust current client connection count */
+  m->n_clients += mi->n_clients_delta;
+  mi->n_clients_delta = 0;
 
   /* prevent dangling pointers */
   if (m->pending == mi)
@@ -1454,8 +1458,9 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
       ASSERT (mi->context.c1.tuntap);
 
-      /* lock down the common name so it can't change during future TLS renegotiations */
+      /* lock down the common name and cert hashes so they can't change during future TLS renegotiations */
       tls_lock_common_name (mi->context.c2.tls_multi);
+      tls_lock_cert_hash_set (mi->context.c2.tls_multi);
 
       /* generate a msg() prefix for this client instance */
       generate_prefix (mi);
@@ -1688,9 +1693,13 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
       /* set flag so we don't get called again */
       mi->connection_established_flag = true;
 
+      /* increment number of current authenticated clients */
+      ++m->n_clients;
+      --mi->n_clients_delta;
+
 #ifdef MANAGEMENT_DEF_AUTH
       if (management)
-	management_connection_established (management, &mi->context.c2.mda_context);
+	management_connection_established (management, &mi->context.c2.mda_context, mi->context.c2.es);
 #endif
 
       gc_free (&gc);
@@ -2437,6 +2446,13 @@ management_callback_status (void *arg, const int version, struct status_output *
 }
 
 static int
+management_callback_n_clients (void *arg)
+{
+  struct multi_context *m = (struct multi_context *) arg;
+  return m->n_clients;
+}
+
+static int
 management_callback_kill_by_cn (void *arg, const char *del_cn)
 {
   struct multi_context *m = (struct multi_context *) arg;
@@ -2524,7 +2540,7 @@ management_kill_by_cid (void *arg, const unsigned long cid)
   struct multi_instance *mi = lookup_by_cid (m, cid);
   if (mi)
     {
-      multi_signal_instance (m, mi, SIGTERM);
+      send_restart (&mi->context); /* was: multi_signal_instance (m, mi, SIGTERM); */
       return true;
     }
   else
@@ -2537,6 +2553,7 @@ management_client_auth (void *arg,
 			const unsigned int mda_key_id,
 			const bool auth,
 			const char *reason,
+			const char *client_reason,
 			struct buffer_list *cc_config) /* ownership transferred */
 {
   struct multi_context *m = (struct multi_context *) arg;
@@ -2546,7 +2563,7 @@ management_client_auth (void *arg,
 
   if (mi)
     {
-      ret = tls_authenticate_key (mi->context.c2.tls_multi, mda_key_id, auth);
+      ret = tls_authenticate_key (mi->context.c2.tls_multi, mda_key_id, auth, client_reason);
       if (ret)
 	{
 	  if (auth && !mi->connection_established_flag)
@@ -2555,7 +2572,7 @@ management_client_auth (void *arg,
 	      cc_config_owned = false;
 	    }
 	  if (!auth && reason)
-	    msg (D_MULTI_LOW, "MULTI: connection rejected: %s", reason);
+	    msg (D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
 	}
     }
   if (cc_config_owned && cc_config)
@@ -2598,6 +2615,7 @@ init_management_callback_multi (struct multi_context *m)
       cb.kill_by_cn = management_callback_kill_by_cn;
       cb.kill_by_addr = management_callback_kill_by_addr;
       cb.delete_event = management_delete_event;
+      cb.n_clients = management_callback_n_clients;
 #ifdef MANAGEMENT_DEF_AUTH
       cb.kill_by_cid = management_kill_by_cid;
       cb.client_auth = management_client_auth;

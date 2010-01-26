@@ -1,7 +1,12 @@
 LOCAL_PATH:= $(call my-dir)
 
+#on a 32bit maschine run ./configure --enable-password-save --enable-iproute2 --disable-pkcs11 --with-ifconfig-path=/system/bin --with-iproute-path=/system/bin --with-route-path=/system/bin
+#from generated Makefile copy variable contents of openvpn_SOURCES to common_SRC_FILES
+# append missing.c to the end of the list
+# missing.c defines undefined functions.
+
 common_SRC_FILES:= \
-	base64.c base64.h \
+        base64.c base64.h \
 	basic.h \
 	buffer.c buffer.h \
 	circ_list.h \
@@ -50,6 +55,7 @@ common_SRC_FILES:= \
 	ieproxy.h ieproxy.c \
         ps.c ps.h \
 	push.c push.h \
+	pushlist.h \
 	reliable.c reliable.h \
 	route.c route.h \
 	schedule.c schedule.h \
@@ -64,8 +70,8 @@ common_SRC_FILES:= \
 	thread.c thread.h \
 	tun.c tun.h \
 	win32.h win32.c \
-	cryptoapi.h cryptoapi.c\
-	rsa_depr.c
+	cryptoapi.h cryptoapi.c \
+	missing.c
 
 #common_CFLAGS += -DNO_WINDOWS_BRAINDEATH 
 
@@ -81,23 +87,23 @@ ifneq ($(TARGET_SIMULATOR),true)
 	common_SHARED_LIBRARIES += libdl
 endif
 
-## static linked binary
-## =====================================================
-#
-#include $(CLEAR_VARS)
-#LOCAL_SRC_FILES:= $(common_SRC_FILES)
-#LOCAL_CFLAGS:= $(common_CFLAGS)
-#LOCAL_C_INCLUDES:= $(common_C_INCLUDES)
-#
-#LOCAL_SHARED_LIBRARIES += $(common_SHARED_LIBRARIES)
-#LOCAL_STATIC_LIBRARIES:= libopenssl-static liblzo-static
-#
-##LOCAL_LDLIBS += -ldl
-##LOCAL_PRELINK_MODULE:= false
-#
-#LOCAL_MODULE:= openvpn-static
-#LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
-#include $(BUILD_EXECUTABLE)
+# static linked binary
+# =====================================================
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES:= $(common_SRC_FILES)
+LOCAL_CFLAGS:= $(common_CFLAGS)
+LOCAL_C_INCLUDES:= $(common_C_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES += $(common_SHARED_LIBRARIES)
+LOCAL_STATIC_LIBRARIES:= libopenssl-static liblzo-static
+
+#LOCAL_LDLIBS += -ldl
+#LOCAL_PRELINK_MODULE:= false
+
+LOCAL_MODULE:= openvpn-static
+LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
+include $(BUILD_EXECUTABLE)
 
 # dynamic linked binary
 # =====================================================

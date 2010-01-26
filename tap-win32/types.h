@@ -4,12 +4,8 @@
  *
  *  This code was inspired by the CIPE-Win32 driver by Damion K. Wilson.
  *
- *  This source code is Copyright (C) 2002-2008 OpenVPN Technologies, Inc.,
- *  and is released under the GPL version 2 (see below), however due
- *  to the extra costs of supporting Windows Vista, OpenVPN Solutions
- *  LLC reserves the right to change the terms of the TAP-Win32/TAP-Win64
- *  license for versions 9.1 and higher prior to the official release of
- *  OpenVPN 2.1.
+ *  This source code is Copyright (C) 2002-2009 OpenVPN Technologies, Inc.,
+ *  and is released under the GPL version 2 (see below).
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -86,6 +82,12 @@ typedef struct _TapExtension
   // Flags
   BOOLEAN m_TapIsRunning;
   BOOLEAN m_CalledTapDeviceFreeResources;
+
+  // DPC queue for deferred packet injection
+  BOOLEAN m_InjectDpcInitialized;
+  KDPC m_InjectDpc;
+  NDIS_SPIN_LOCK m_InjectLock;
+  Queue *m_InjectQueue;
 }
 TapExtension, *TapExtensionPointer;
 
@@ -98,6 +100,15 @@ typedef struct _TapPacket
     UCHAR m_Data []; // m_Data must be the last struct member
    }
 TapPacket, *TapPacketPointer;
+
+typedef struct _InjectPacket
+   {
+#   define INJECT_PACKET_SIZE(data_size) (sizeof (InjectPacket) + (data_size))
+#   define INJECT_PACKET_FREE(ib)  NdisFreeMemory ((ib), INJECT_PACKET_SIZE ((ib)->m_Size), 0)
+    ULONG m_Size;
+    UCHAR m_Data []; // m_Data must be the last struct member
+   }
+InjectPacket, *InjectPacketPointer;
 
 typedef struct _TapAdapter
 {

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -229,6 +229,9 @@ bool delete_file (const char *filename);
 
 /* return true if pathname is absolute */
 bool absolute_pathname (const char *pathname);
+
+/* prepend a random prefix to hostname (need USE_CRYPTO) */
+const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 
 /*
  * Get and store a username/password

@@ -1,8 +1,14 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Enable deferred authentication */
+#define CONFIGURE_DEF_AUTH 1
+
+/* Enable internal packet filter */
+#define CONFIGURE_PF 1
+
 /* enable iproute2 support */
-/* #undef CONFIG_FEATURE_IPROUTE */
+#define CONFIG_FEATURE_IPROUTE 1
 
 /* Use memory debugging function in OpenSSL */
 /* #undef CRYPTO_MDEBUG */
@@ -280,6 +286,9 @@
 /* Define to 1 if you have the `sendto' function. */
 #define HAVE_SENDTO 1
 
+/* SELinux support */
+/* #undef HAVE_SETCON */
+
 /* Define to 1 if you have the `setgid' function. */
 #define HAVE_SETGID 1
 
@@ -416,10 +425,10 @@
 #define HAVE_WRITEV 1
 
 /* Path to ifconfig tool */
-#define IFCONFIG_PATH "/system/xbin/bb/ifconfig"
+#define IFCONFIG_PATH "/system/bin"
 
 /* Path to iproute tool */
-#define IPROUTE_PATH "ip"
+#define IPROUTE_PATH "/system/bin"
 
 /* Use lzo/ directory prefix for LZO header files (for LZO 2.0) */
 #define LZO_HEADER_DIR 1
@@ -437,13 +446,13 @@
 #define PACKAGE_NAME "OpenVPN"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "OpenVPN 2.1_rc15"
+#define PACKAGE_STRING "OpenVPN 2.1.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "openvpn"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.1_rc15"
+#define PACKAGE_VERSION "2.1.1"
 
 /* Define to the necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -453,7 +462,7 @@
 #define RETSIGTYPE void
 
 /* Path to route tool */
-#define ROUTE_PATH "/system/xbin/bb/route"
+#define ROUTE_PATH "/system/bin"
 
 /* The size of `unsigned int', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_INT 4
@@ -522,7 +531,7 @@
 #define USE_LZO 1
 
 /* Enable PKCS11 capability */
-/* #define USE_PKCS11 1 */
+/* #undef USE_PKCS11 */
 
 /* Use pthread-based multithreading */
 /* #undef USE_PTHREAD */
@@ -534,7 +543,7 @@
 /* #undef USE_VALGRIND */
 
 /* Version number of package */
-#define VERSION "2.1_rc15"
+#define VERSION "2.1.1"
 
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE

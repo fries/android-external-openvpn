@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+#  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License version 2
@@ -123,6 +123,7 @@ openvpn_SOURCES = \
 	ieproxy.h ieproxy.c \
         ps.c ps.h \
 	push.c push.h \
+	pushlist.h \
 	reliable.c reliable.h \
 	route.c route.h \
 	schedule.c schedule.h \
@@ -141,7 +142,7 @@ openvpn_SOURCES = \
 
 
 dist-hook:
-	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
+	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
 
 if WIN32
 dist_noinst_DATA += openvpn.8

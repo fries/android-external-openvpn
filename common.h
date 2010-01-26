@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -53,23 +53,29 @@ typedef int interval_t;
 /*
  * Printf formats for special types
  */
+#ifdef _WIN64
+#define ptr_format              "0x%I64x"
+#else
 #define ptr_format              "0x%08lx"
+#endif
 #define time_format             "%lu"
 #define fragment_header_format  "0x%08x"
 
 /* these are used to cast the arguments
  * and MUST match the formats above */
 typedef unsigned long time_type;
+#ifdef _WIN64
+typedef unsigned long long ptr_type;
+#else
 typedef unsigned long ptr_type;
+#endif
 
 /* the --client-config-dir default file */
 #define CCD_DEFAULT "DEFAULT"
 
 /*
- * This parameter controls the TLS channel buffer size.  Among
- * other things, this buffer must be large enough to contain
- * the full --push/--pull list.  If you increase it, do so
- * on both server and client.
+ * This parameter controls the TLS channel buffer size and the
+ * maximum size of a single TLS message (cleartext).
  */
 #define TLS_CHANNEL_BUF_SIZE 1024
 

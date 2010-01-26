@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -397,6 +397,25 @@ key_ctx_bi_defined(const struct key_ctx_bi* key)
 {
   return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
 }
+
+/*
+ * md5 functions
+ */
+
+struct md5_state {
+  MD5_CTX ctx;
+};
+
+struct md5_digest {
+  uint8_t digest [MD5_DIGEST_LENGTH];
+};
+
+void md5_state_init (struct md5_state *s);
+void md5_state_update (struct md5_state *s, void *data, size_t len);
+void md5_state_final (struct md5_state *s, struct md5_digest *out);
+void md5_digest_clear (struct md5_digest *digest);
+bool md5_digest_defined (const struct md5_digest *digest);
+bool md5_digest_equal (const struct md5_digest *d1, const struct md5_digest *d2);
 
 #endif /* USE_CRYPTO */
 #endif /* CRYPTO_H */

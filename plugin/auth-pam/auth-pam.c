@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -305,6 +305,8 @@ openvpn_plugin_open_v1 (unsigned int *type_mask, const char *argv[], const char 
    * Allocate our context
    */
   context = (struct auth_pam_context *) calloc (1, sizeof (struct auth_pam_context));
+  if (!context)
+    goto error;
   context->foreground_fd = -1;
 
   /*
@@ -492,7 +494,7 @@ openvpn_plugin_abort_v1 (openvpn_plugin_handle_t handle)
   struct auth_pam_context *context = (struct auth_pam_context *) handle;
 
   /* tell background process to exit */
-  if (context->foreground_fd >= 0)
+  if (context && context->foreground_fd >= 0)
     {
       send_control (context->foreground_fd, COMMAND_EXIT);
       close (context->foreground_fd);

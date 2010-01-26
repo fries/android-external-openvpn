@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -112,7 +112,7 @@ void net_event_win32_reset_write (struct net_event_win32 *ne);
 void net_event_win32_stop (struct net_event_win32 *ne);
 void net_event_win32_close (struct net_event_win32 *ne);
 
-static bool
+static inline bool
 net_event_win32_defined (const struct net_event_win32 *ne)
 {
   return defined_net_event_win32 (&ne->handle);
@@ -264,6 +264,9 @@ void env_set_add_win32 (struct env_set *es);
 void set_win_sys_path (const char *newpath, struct env_set *es);
 void set_win_sys_path_via_env (struct env_set *es);
 char *get_win_sys_path (void);
+
+/* call self in a subprocess */
+void fork_to_self (const char *cmdline);
 
 #endif
 #endif

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -178,6 +178,10 @@
 
 #ifdef HAVE_SYS_EPOLL_H
 #include <sys/epoll.h>
+#endif
+
+#ifdef HAVE_SETCON
+#include <selinux/selinux.h>
 #endif
 
 #ifdef TARGET_SOLARIS
@@ -494,7 +498,6 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable deferred authentication?
  */
-#define CONFIGURE_DEF_AUTH /* this should be set by autoconf and config.h */
 #if defined(CONFIGURE_DEF_AUTH) && P2MP_SERVER && defined(ENABLE_PLUGIN)
 #define PLUGIN_DEF_AUTH
 #endif
@@ -508,7 +511,6 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable packet filter?
  */
-#define CONFIGURE_PF /* this should be set by autoconf and config.h */
 #if defined(CONFIGURE_PF) && P2MP_SERVER && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
 #define PLUGIN_PF
 #endif

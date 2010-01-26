@@ -1,0 +1,7 @@
+void mlockall(){}
+char *
+getpass (prompt)
+     const char *prompt;
+{
+  return "";
+}

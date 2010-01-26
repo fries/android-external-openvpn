@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -83,6 +83,7 @@ struct multi_instance {
 #endif
   bool connection_established_flag;
   bool did_iroutes;
+  int n_clients_delta; /* added to multi_context.n_clients when instance is closed */
 
   struct context context;
 };
@@ -114,6 +115,7 @@ struct multi_context {
   int max_clients;
   int tcp_queue_limit;
   int status_file_version;
+  int n_clients; /* current number of authenticated clients */
 
 #ifdef MANAGEMENT_DEF_AUTH
   struct hash *cid_hash;

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -1184,6 +1184,44 @@ create_temp_filename (const char *directory, const char *prefix, struct gc_arena
   }
 
   return gen_path (directory, BSTR (&fname), gc);
+}
+
+/*
+ * Add a random string to first DNS label of hostname to prevent DNS caching.
+ * For example, foo.bar.gov would be modified to <random-chars>.foo.bar.gov.
+ * Of course, this requires explicit support in the DNS server.
+ */
+const char *
+hostname_randomize(const char *hostname, struct gc_arena *gc)
+{
+  const int n_rnd_bytes = 6;
+
+  char *hst = string_alloc(hostname, gc);
+  char *dot = strchr(hst, '.');
+
+  if (dot)
+    {
+      uint8_t rnd_bytes[n_rnd_bytes];
+      const char *rnd_str;
+      struct buffer hname = alloc_buf_gc (strlen(hostname)+sizeof(rnd_bytes)*2+4, gc);
+
+      *dot++ = '\0';
+      prng_bytes (rnd_bytes, sizeof (rnd_bytes));
+      rnd_str = format_hex_ex (rnd_bytes, sizeof (rnd_bytes), 40, 0, NULL, gc);
+      buf_printf(&hname, "%s-0x%s.%s", hst, rnd_str, dot);
+      return BSTR(&hname);
+    }
+  else
+    return hostname;
+}
+
+#else
+
+const char *
+hostname_randomize(const char *hostname, struct gc_arena *gc)
+{
+  msg (M_WARN, "WARNING: hostname randomization disabled when crypto support is not compiled");
+  return hostname;
 }
 
 #endif

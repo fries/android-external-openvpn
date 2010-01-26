@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -175,6 +175,14 @@ event_timeout_reset (struct event_timeout* et)
 {
   if (et->defined)
     et->last = now;
+}
+
+static inline void
+event_timeout_modify_wakeup (struct event_timeout* et, interval_t n)
+{
+  /* note that you might need to call reset_coarse_timers after this */
+  if (et->defined)
+    et->n = (n >= 0) ? n : 0;
 }
 
 /*

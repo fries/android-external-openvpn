@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -50,7 +50,7 @@ print_bypass_addresses (const struct route_bypass *rb)
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
     {
-      msg (D_ROUTE_DEBUG, "ROUTE DEBUG: bypass_host_route[%d]=%s",
+      msg (D_ROUTE, "ROUTE: bypass_host_route[%d]=%s",
 	   i,
 	   print_in_addr_t (rb->bypass[i], 0, &gc));
     }
@@ -80,18 +80,38 @@ add_bypass_address (struct route_bypass *rb, const in_addr_t a)
 }
 
 struct route_option_list *
-new_route_option_list (struct gc_arena *a)
+new_route_option_list (const int max_routes, struct gc_arena *a)
 {
   struct route_option_list *ret;
-  ALLOC_OBJ_CLEAR_GC (ret, struct route_option_list, a);
+  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_option_list, struct route_option, max_routes, a);
+  ret->capacity = max_routes;
   return ret;
 }
 
+struct route_option_list *
+clone_route_option_list (const struct route_option_list *src, struct gc_arena *a)
+{
+  const size_t rl_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
+  struct route_option_list *ret = gc_malloc (rl_size, false, a);
+  memcpy (ret, src, rl_size);
+  return ret;
+}
+
+void
+copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src)
+{
+  const size_t src_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
+  if (src->n > dest->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->n, dest->capacity);
+  memcpy (dest, src, src_size);
+}
+
 struct route_list *
-new_route_list (struct gc_arena *a)
+new_route_list (const int max_routes, struct gc_arena *a)
 {
   struct route_list *ret;
-  ALLOC_OBJ_CLEAR_GC (ret, struct route_list, a);
+  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_list, struct route, max_routes, a);
+  ret->capacity = max_routes;
   return ret;
 }
 
@@ -317,9 +337,9 @@ add_route_to_option_list (struct route_option_list *l,
 			  const char *metric)
 {
   struct route_option *ro;
-  if (l->n >= MAX_ROUTES)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: cannot add more than %d routes",
-	 MAX_ROUTES);
+  if (l->n >= l->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: cannot add more than %d routes -- please increase the max-routes option in the client configuration file",
+	 l->capacity);
   ro = &l->routes[l->n];
   ro->network = network;
   ro->netmask = netmask;
@@ -331,7 +351,10 @@ add_route_to_option_list (struct route_option_list *l,
 void
 clear_route_list (struct route_list *rl)
 {
-  CLEAR (*rl);
+  const int capacity = rl->capacity;
+  const size_t rl_size = array_mult_safe (sizeof(struct route), capacity, sizeof(struct route_list));
+  memset(rl, 0, rl_size);
+  rl->capacity = capacity;
 }
 
 void
@@ -379,7 +402,7 @@ init_route_list (struct route_list *rl,
     }
   else
     {
-      dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=UNDEF");
+      dmsg (D_ROUTE, "ROUTE: default_gateway=UNDEF");
     }
 
   if (rl->flags & RG_ENABLE)
@@ -415,7 +438,8 @@ init_route_list (struct route_list *rl,
   else
     rl->spec.remote_endpoint_defined = false;
 
-  ASSERT (opt->n >= 0 && opt->n < MAX_ROUTES);
+  if (!(opt->n >= 0 && opt->n <= rl->capacity))
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: (init) number of route options (%d) is greater than route list capacity (%d)", opt->n, rl->capacity);
 
   /* parse the routes from opt to rl */
   {
@@ -531,53 +555,73 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	}
       else
 	{
-	  /* route remote host to original default gateway */
-	  if (!(rl->flags & RG_LOCAL))
-	    add_route3 (rl->spec.remote_host,
-			~0,
-			rl->spec.net_gateway,
-			tt,
-			flags,
-			es);
-
-	  /* route DHCP/DNS server traffic through original default gateway */
-	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
-
-	  if (rl->flags & RG_DEF1)
+	  bool local = BOOL_CAST(rl->flags & RG_LOCAL);
+	  if (rl->flags & RG_AUTO_LOCAL) {
+	    const int tla = test_local_addr (rl->spec.remote_host);
+	    if (tla == TLA_NONLOCAL)
+	      {
+		dmsg (D_ROUTE, "ROUTE remote_host is NOT LOCAL");
+		local = false;
+	      }
+	    else if (tla == TLA_LOCAL)
+	      {
+		dmsg (D_ROUTE, "ROUTE remote_host is LOCAL");
+		local = true;
+	      }
+	  }
+	  if (!local)
 	    {
-	      /* add new default route (1st component) */
-	      add_route3 (0x00000000,
-			  0x80000000,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
-
-	      /* add new default route (2nd component) */
-	      add_route3 (0x80000000,
-			  0x80000000,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
-	    }
-	  else
-	    {
-	      /* delete default route */
-	      del_route3 (0,
-			  0,
+	      /* route remote host to original default gateway */
+	      add_route3 (rl->spec.remote_host,
+			  ~0,
 			  rl->spec.net_gateway,
 			  tt,
 			  flags,
 			  es);
+	      rl->did_local = true;
+	    }
 
-	      /* add new default route */
-	      add_route3 (0,
-			  0,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
+	  /* route DHCP/DNS server traffic through original default gateway */
+	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+
+	  if (rl->flags & RG_REROUTE_GW)
+	    {
+	      if (rl->flags & RG_DEF1)
+		{
+		  /* add new default route (1st component) */
+		  add_route3 (0x00000000,
+			      0x80000000,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
+
+		  /* add new default route (2nd component) */
+		  add_route3 (0x80000000,
+			      0x80000000,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
+		}
+	      else
+		{
+		  /* delete default route */
+		  del_route3 (0,
+			      0,
+			      rl->spec.net_gateway,
+			      tt,
+			      flags,
+			      es);
+
+		  /* add new default route */
+		  add_route3 (0,
+			      0,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
+		}
 	    }
 
 	  /* set a flag so we can undo later */
@@ -592,52 +636,58 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
   if (rl->did_redirect_default_gateway)
     {
       /* delete remote host route */
-      if (!(rl->flags & RG_LOCAL))
-	del_route3 (rl->spec.remote_host,
-		    ~0,
-		    rl->spec.net_gateway,
-		    tt,
-		    flags,
-		    es);
-
-      /* delete special DHCP/DNS bypass route */
-      del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
-
-      if (rl->flags & RG_DEF1)
+      if (rl->did_local)
 	{
-	  /* delete default route (1st component) */
-	  del_route3 (0x00000000,
-		      0x80000000,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
-
-	  /* delete default route (2nd component) */
-	  del_route3 (0x80000000,
-		      0x80000000,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
-	}
-      else
-	{
-	  /* delete default route */
-	  del_route3 (0,
-		      0,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
-
-	  /* restore original default route */
-	  add_route3 (0,
-		      0,
+	  del_route3 (rl->spec.remote_host,
+		      ~0,
 		      rl->spec.net_gateway,
 		      tt,
 		      flags,
 		      es);
+	  rl->did_local = false;
+	}
+
+      /* delete special DHCP/DNS bypass route */
+      del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+
+      if (rl->flags & RG_REROUTE_GW)
+	{
+	  if (rl->flags & RG_DEF1)
+	    {
+	      /* delete default route (1st component) */
+	      del_route3 (0x00000000,
+			  0x80000000,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
+
+	      /* delete default route (2nd component) */
+	      del_route3 (0x80000000,
+			  0x80000000,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
+	    }
+	  else
+	    {
+	      /* delete default route */
+	      del_route3 (0,
+			  0,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
+
+	      /* restore original default route */
+	      add_route3 (0,
+			  0,
+			  rl->spec.net_gateway,
+			  tt,
+			  flags,
+			  es);
+	    }
 	}
 
       rl->did_redirect_default_gateway = false;
@@ -690,7 +740,7 @@ delete_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flag
     }
   undo_redirect_default_route_to_vpn (rl, tt, flags, es);
 
-  CLEAR (*rl);
+  clear_route_list (rl);
 }
 
 #ifdef ENABLE_DEBUG
@@ -1530,7 +1580,7 @@ get_default_gateway (in_addr_t *gateway, in_addr_t *netmask)
 	  *gateway = best_gw;
 	  if (netmask)
 	    {
-	      *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	      *netmask = 0xFFFFFF00; /* FIXME -- get the real netmask of the adapter containing the default gateway */
 	    }
 	  ret = true;
 	}
@@ -2034,7 +2084,7 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 #else
 
 bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)  /* PLATFORM-SPECIFIC */
 {
   return false;
 }
@@ -2074,14 +2124,14 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 #if defined(WIN32)
 
 static void
-add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr, const IP_ADAPTER_INFO *dgi)
+add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr)
 {
-  if (!is_ip_in_adapter_subnet (dgi, addr, NULL) && addr != 0 && addr != ~0)
+  if (test_local_addr(addr) == TLA_NONLOCAL && addr != 0 && addr != ~0)
     add_bypass_address (rb, addr);
 }
 
 static void
-add_host_route_array (struct route_bypass *rb, const IP_ADAPTER_INFO *dgi, const IP_ADDR_STRING *iplist)
+add_host_route_array (struct route_bypass *rb, const IP_ADDR_STRING *iplist)
 {
   while (iplist)
     {
@@ -2089,7 +2139,7 @@ add_host_route_array (struct route_bypass *rb, const IP_ADAPTER_INFO *dgi, const
       const in_addr_t ip = getaddr (GETADDR_HOST_ORDER, iplist->IpAddress.String, 0, &succeed, NULL);
       if (succeed)
 	{
-	  add_host_route_if_nonlocal (rb, ip, dgi);
+	  add_host_route_if_nonlocal (rb, ip);
 	}
       iplist = iplist->Next;
     }
@@ -2117,11 +2167,11 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 
       /* Bypass DHCP server address */
       if ((flags & RG_BYPASS_DHCP) && dgi && dgi->DhcpEnabled)
-	add_host_route_array (rb, dgi, &dgi->DhcpServer);
+	add_host_route_array (rb, &dgi->DhcpServer);
 
       /* Bypass DNS server addresses */
       if ((flags & RG_BYPASS_DNS) && pai)
-	add_host_route_array (rb, dgi, &pai->DnsServerList);
+	add_host_route_array (rb, &pai->DnsServerList);
     }
 
   gc_free (&gc);
@@ -2130,7 +2180,7 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 #else
 
 static void
-get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
+get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)  /* PLATFORM-SPECIFIC */
 {
 }
 
@@ -2277,10 +2327,61 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
 #else
 
 bool
-get_default_gateway_mac_addr (unsigned char *macaddr)
+get_default_gateway_mac_addr (unsigned char *macaddr) /* PLATFORM-SPECIFIC */
 {
   return false;
 }
 
 #endif
 #endif /* AUTO_USERID */
+
+/*
+ * Test if addr is reachable via a local interface (return ILA_LOCAL),
+ * or if it needs to be routed via the default gateway (return
+ * ILA_NONLOCAL).  If the target platform doesn't implement this
+ * function, return ILA_NOT_IMPLEMENTED.
+ *
+ * Used by redirect-gateway autolocal feature
+ */
+
+#if defined(WIN32)
+
+int
+test_local_addr (const in_addr_t addr)
+{
+  struct gc_arena gc = gc_new ();
+  const in_addr_t nonlocal_netmask = 0x80000000L; /* routes with netmask <= to this are considered non-local */
+  bool ret = TLA_NONLOCAL;
+
+  /* get full routing table */
+  const MIB_IPFORWARDTABLE *rt = get_windows_routing_table (&gc);
+  if (rt)
+    {
+      int i;
+      for (i = 0; i < rt->dwNumEntries; ++i)
+	{
+	  const MIB_IPFORWARDROW *row = &rt->table[i];
+	  const in_addr_t net = ntohl (row->dwForwardDest);
+	  const in_addr_t mask = ntohl (row->dwForwardMask);
+	  if (mask > nonlocal_netmask && (addr & mask) == net)
+	    {
+	      ret = TLA_LOCAL;
+	      break;
+	    }
+	}
+    }
+
+  gc_free (&gc);
+  return ret;
+}
+
+#else
+
+
+int
+test_local_addr (const in_addr_t addr) /* PLATFORM-SPECIFIC */
+{
+  return TLA_NOT_IMPLEMENTED;
+}
+
+#endif

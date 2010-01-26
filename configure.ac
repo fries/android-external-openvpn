@@ -4,7 +4,7 @@ dnl             session authentication and key exchange,
 dnl             packet encryption, packet authentication, and
 dnl             packet compression.
 dnl
-dnl  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+dnl  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 dnl
 dnl  This program is free software; you can redistribute it and/or modify
 dnl  it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ AC_ARG_WITH(cygwin-native,
 WIN32="no"
 CYGWIN="no"
 case "${host}" in
-	*-mingw32*)
+	*-mingw*)
 		WIN32="yes"
 		cross_compiling="yes"
 	;;
@@ -170,6 +170,18 @@ AC_ARG_ENABLE(iproute2,
    test $enableval = "yes" && AC_DEFINE(CONFIG_FEATURE_IPROUTE, 1, [enable iproute2 support])   
 )
 
+AC_ARG_ENABLE(def-auth,
+   [  --disable-def-auth      Disable deferred authentication],
+   [DEF_AUTH="$enableval"],
+   [DEF_AUTH="yes"]
+)
+
+AC_ARG_ENABLE(pf,
+   [  --disable-pf            Disable internal packet filter],
+   [PF="$enableval"],
+   [PF="yes"]
+)
+
 AC_ARG_ENABLE(strict,
    [  --enable-strict         Enable strict compiler warnings (debugging option)],
    [STRICT="$enableval"],
@@ -192,6 +204,12 @@ AC_ARG_ENABLE(strict-options,
    [  --enable-strict-options Enable strict options check between peers (debugging option)],
    [STRICT_OPTIONS="$enableval"],
    [STRICT_OPTIONS="no"]
+)
+
+AC_ARG_ENABLE(selinux,
+   [  --disable-selinux       Disable SELinux support],
+   [SELINUX="$enableval"],
+   [SELINUX="yes"]
 )
 
 AC_ARG_WITH(ssl-headers,
@@ -679,38 +697,40 @@ dnl
 
 if test "$CRYPTO" = "yes"; then
    AC_CHECKING([for OpenSSL Crypto Library and Header files])
-   AC_CHECK_HEADER(openssl/evp.h,
-	[AC_CHECK_LIB(crypto, EVP_CIPHER_CTX_init,
-            [
-		   AC_CHECKING([that OpenSSL Library is at least version 0.9.6])
-		   AC_EGREP_CPP(yes,
-		     [
-		       #include <openssl/evp.h>
-		       #if SSLEAY_VERSION_NUMBER >= 0x00906000L
-		         yes
-		       #endif
-		     ],
-		     [
-                       AC_DEFINE(USE_CRYPTO, 1, [Use OpenSSL crypto library])
-                       if test "${WIN32}" = "yes"; then
-                         OPENVPN_ADD_LIBS(-leay32)
-                       else
-                         OPENVPN_ADD_LIBS(-lcrypto)
-                       fi
-                       AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
+   AC_CHECK_HEADER(openssl/evp.h,,
+	[AC_MSG_ERROR([OpenSSL Crypto headers not found.])])
 
-		       dnl check for OpenSSL crypto acceleration capability
-		       AC_CHECK_HEADERS(openssl/engine.h)
-                       AC_CHECK_FUNCS(ENGINE_load_builtin_engines)
-                       AC_CHECK_FUNCS(ENGINE_register_all_complete)
-                       AC_CHECK_FUNCS(ENGINE_cleanup)
-                     ],
-		     [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
-		   )
-	    ],
-	    [AC_MSG_ERROR([OpenSSL Crypto library not found.])]
-	)],
-	[AC_MSG_ERROR([OpenSSL Crypto headers not found.])]
+   for lib in crypto eay32; do
+      AC_CHECK_LIB($lib, EVP_CIPHER_CTX_init,
+            [
+		cryptofound=1
+		OPENVPN_ADD_LIBS(-l$lib)
+	    ]
+      )
+   done
+
+   test -n "$cryptofound" || AC_MSG_ERROR([OpenSSL Crypto library not found.])
+
+   AC_MSG_CHECKING([that OpenSSL Library is at least version 0.9.6])
+   AC_EGREP_CPP(yes,
+     [
+       #include <openssl/evp.h>
+       #if SSLEAY_VERSION_NUMBER >= 0x00906000L
+	 yes
+       #endif
+     ],
+     [
+       AC_MSG_RESULT([yes])
+       AC_DEFINE(USE_CRYPTO, 1, [Use OpenSSL crypto library])
+       AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
+
+       dnl check for OpenSSL crypto acceleration capability
+       AC_CHECK_HEADERS(openssl/engine.h)
+       AC_CHECK_FUNCS(ENGINE_load_builtin_engines)
+       AC_CHECK_FUNCS(ENGINE_register_all_complete)
+       AC_CHECK_FUNCS(ENGINE_cleanup)
+     ],
+     [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
    )
 
 dnl
@@ -719,30 +739,33 @@ dnl
 
    if test "$SSL" = "yes"; then
       AC_CHECKING([for OpenSSL SSL Library and Header files])
-      AC_CHECK_HEADER(openssl/ssl.h,
-	   [AC_CHECK_LIB(ssl, SSL_CTX_new,
-	       [
-                  if test "$MEMCHECK" = "ssl"; then
-                     AC_CHECKING([for Memory Debugging Capabilities in OpenSSL Library])
-                     AC_CHECK_LIB(ssl, CRYPTO_mem_ctrl,
-                         [
-                             AC_DEFINE(CRYPTO_MDEBUG, 1, [Use memory debugging function in OpenSSL])
-			     AC_MSG_RESULT([NOTE: OpenSSL library must be compiled with CRYPTO_MDEBUG])
-                         ],
-                         [AC_MSG_ERROR([Memory Debugging function in OpenSSL library not found.])]
-                     )
-                  fi
-	       ],
-	       [AC_MSG_ERROR([OpenSSL SSL library not found.])]
-	   )],
+      AC_CHECK_HEADER(openssl/ssl.h,,
 	   [AC_MSG_ERROR([OpenSSL SSL headers not found.])]
       )
-      AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
-      if test "${WIN32}" = "yes"; then
-        OPENVPN_ADD_LIBS(-lssl32)
-      else
-        OPENVPN_ADD_LIBS(-lssl)
+
+      for lib in ssl ssl32; do
+	  AC_CHECK_LIB($lib, SSL_CTX_new,
+		[
+			sslfound=1
+			OPENVPN_ADD_LIBS(-l$lib)
+		]
+	  )
+      done
+
+      test -n "${sslfound}" || AC_MSG_ERROR([OpenSSL SSL library not found.])
+
+      if test "$MEMCHECK" = "ssl"; then
+	     AC_CHECKING([for Memory Debugging Capabilities in OpenSSL Library])
+	     AC_CHECK_LIB(ssl, CRYPTO_mem_ctrl,
+		 [
+		     AC_DEFINE(CRYPTO_MDEBUG, 1, [Use memory debugging function in OpenSSL])
+		     AC_MSG_RESULT([NOTE: OpenSSL library must be compiled with CRYPTO_MDEBUG])
+		 ],
+		 [AC_MSG_ERROR([Memory Debugging function in OpenSSL library not found.])]
+	     )
       fi
+
+      AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
    fi
 fi
 
@@ -811,6 +834,16 @@ if test "$PORT_SHARE" = "yes"; then
    AC_DEFINE(ENABLE_PORT_SHARE, 1, [Enable TCP Server port sharing])
 fi
 
+dnl enable deferred auth
+if test "$DEF_AUTH" = "yes"; then
+   AC_DEFINE(CONFIGURE_DEF_AUTH, 1, [Enable deferred authentication])
+fi
+
+dnl enable internal packet filter
+if test "$PF" = "yes"; then
+   AC_DEFINE(CONFIGURE_PF, 1, [Enable internal packet filter])
+fi
+
 dnl enable strict compiler warnings
 if test "$STRICT" = "yes"; then
    CFLAGS="$CFLAGS -Wall -Wno-unused-parameter -Wno-unused-function"
@@ -836,6 +869,23 @@ if test "$PASSWORD_SAVE" = "yes"; then
    AC_DEFINE(ENABLE_PASSWORD_SAVE, 1, [Allow --askpass and --auth-user-pass passwords to be read from a file])
 fi
 
+dnl
+dnl check for SELinux library and headers
+dnl
+if test "$SELINUX" = "yes"; then
+   AC_CHECKING([for libselinux Library and Header files])
+   AC_CHECK_HEADER(selinux/selinux.h,
+      [AC_CHECK_LIB(selinux, setcon,
+         [
+            OPENVPN_ADD_LIBS(-lselinux)
+            AC_DEFINE(HAVE_SETCON, 1, [SELinux support])
+         ],
+            [AC_MSG_RESULT([SELinux library not found.])]
+         )],
+      [AC_MSG_RESULT([SELinux headers not found.])]
+   )
+fi
+
 TAP_ID="PRODUCT_TAP_ID"
 TAP_WIN32_MIN_MAJOR="PRODUCT_TAP_WIN32_MIN_MAJOR"
 TAP_WIN32_MIN_MINOR="PRODUCT_TAP_WIN32_MIN_MINOR"
@@ -852,7 +902,7 @@ AM_CONDITIONAL(WIN32, test "${WIN32}" = "yes")
 
 # workaround for <autoconf-2.60
 if test -z "${docdir}"; then
-	docdir="\$(datarootdir)/doc/\$(PACKAGE_NAME)"
+	docdir="\$(datadir)/doc/\$(PACKAGE_NAME)"
 	AC_SUBST([docdir])
 fi
 if test -z "${htmldir}"; then

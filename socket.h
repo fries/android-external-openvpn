@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -198,6 +198,7 @@ struct link_socket
 # define SF_USE_IP_PKTINFO (1<<0)
 # define SF_TCP_NODELAY (1<<1)
 # define SF_PORT_SHARE (1<<2)
+# define SF_HOST_RANDOMIZE (1<<3)
   unsigned int sockflags;
 
   /* for stream sockets */
@@ -421,6 +422,9 @@ void socket_bind_unix (socket_descriptor_t sd,
 socket_descriptor_t socket_accept_unix (socket_descriptor_t sd,
 					struct sockaddr_un *remote);
 
+int socket_connect_unix (socket_descriptor_t sd,
+			 struct sockaddr_un *remote);
+
 void sockaddr_unix_init (struct sockaddr_un *local, const char *path);
 
 const char *sockaddr_unix_name (const struct sockaddr_un *local, const char *null);
@@ -444,6 +448,7 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_MSG_VIRT_OUT          (1<<6)
 #define GETADDR_TRY_ONCE              (1<<7)
 #define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
+#define GETADDR_RANDOMIZE             (1<<9)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,

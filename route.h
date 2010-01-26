@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -32,7 +32,7 @@
 #include "tun.h"
 #include "misc.h"
 
-#define MAX_ROUTES 100
+#define MAX_ROUTES_DEFAULT 100
 
 #ifdef WIN32
 /*
@@ -82,11 +82,14 @@ struct route_option {
 #define RG_DEF1           (1<<2)
 #define RG_BYPASS_DHCP    (1<<3)
 #define RG_BYPASS_DNS     (1<<4)
+#define RG_REROUTE_GW     (1<<5)
+#define RG_AUTO_LOCAL     (1<<6)
 
 struct route_option_list {
-  int n;
   unsigned int flags;
-  struct route_option routes[MAX_ROUTES];
+  int capacity;
+  int n;
+  struct route_option routes[EMPTY_ARRAY_SIZE];
 };
 
 struct route {
@@ -104,8 +107,10 @@ struct route_list {
   struct route_special_addr spec;
   unsigned int flags;
   bool did_redirect_default_gateway;
+  bool did_local;
+  int capacity;
   int n;
-  struct route routes[MAX_ROUTES];
+  struct route routes[EMPTY_ARRAY_SIZE];
 };
 
 #if P2MP
@@ -117,9 +122,11 @@ struct iroute {
 };
 #endif
 
-struct route_option_list *new_route_option_list (struct gc_arena *a);
+struct route_option_list *new_route_option_list (const int max_routes, struct gc_arena *a);
+struct route_option_list *clone_route_option_list (const struct route_option_list *src, struct gc_arena *a);
+void copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src);
 
-struct route_list *new_route_list (struct gc_arena *a);
+struct route_list *new_route_list (const int max_routes, struct gc_arena *a);
 
 void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
@@ -128,8 +135,6 @@ void add_route_to_option_list (struct route_option_list *l,
 			       const char *netmask,
 			       const char *gateway,
 			       const char *metric);
-
-void clear_route_list (struct route_list *rl);
 
 bool init_route_list (struct route_list *rl,
 		      const struct route_option_list *opt,
@@ -157,6 +162,17 @@ void setenv_routes (struct env_set *es, const struct route_list *rl);
 bool is_special_addr (const char *addr_str);
 
 bool get_default_gateway (in_addr_t *ip, in_addr_t *netmask);
+
+/*
+ * Test if addr is reachable via a local interface (return ILA_LOCAL),
+ * or if it needs to be routed via the default gateway (return
+ * ILA_NONLOCAL).  If the current platform doesn't implement this
+ * function, return ILA_NOT_IMPLEMENTED.
+ */
+#define TLA_NOT_IMPLEMENTED 0
+#define TLA_NONLOCAL        1
+#define TLA_LOCAL           2
+int test_local_addr (const in_addr_t addr);
 
 #if AUTO_USERID
 bool get_default_gateway_mac_addr (unsigned char *macaddr);

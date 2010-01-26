@@ -51,8 +51,10 @@
 #define CERT_STORE_OPEN_EXISTING_FLAG 0x00004000
 #define CRYPT_ACQUIRE_COMPARE_KEY_FLAG 0x00000004
 static HINSTANCE crypt32dll = NULL;
-static BOOL WINAPI (*CryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
-    void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
+static BOOL WINAPI (*OpenVPNCryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
+  void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
+#else
+#define OpenVPNCryptAcquireCertificatePrivateKey CryptAcquireCertificatePrivateKey
 #endif
 
 /* Size of an SSL signature: MD5+SHA1 */
@@ -387,16 +389,16 @@ int SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
 	    goto err;
 	}
     }
-    if (CryptAcquireCertificatePrivateKey == NULL) {
-	CryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
+    if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
+	OpenVPNCryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
 		"CryptAcquireCertificatePrivateKey");
-	if (CryptAcquireCertificatePrivateKey == NULL) {
+	if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
 	    CRYPTOAPIerr(CRYPTOAPI_F_GET_PROC_ADDRESS);
 	    goto err;
 	}
     }
 #endif
-    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
+    if (!OpenVPNCryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
 	    NULL, &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov)) {
 	/* if we don't have a smart card reader here, and we try to access a
 	 * smart card certificate, we get:

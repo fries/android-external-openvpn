@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -33,7 +33,7 @@
 #ifdef ENABLE_PKCS11
 #define ERR_BUF_SIZE 8192
 #else
-#define ERR_BUF_SIZE 1024
+#define ERR_BUF_SIZE 1280
 #endif
 
 struct gc_arena;
@@ -42,7 +42,8 @@ struct gc_arena;
  * Where should messages be printed before syslog is opened?
  * Not used if OPENVPN_DEBUG_COMMAND_LINE is defined.
  */
-#define OPENVPN_MSG_FP stdout
+#define OPENVPN_MSG_FP   stdout
+#define OPENVPN_ERROR_FP stderr
 
 /*
  * Exit status codes
@@ -183,6 +184,10 @@ void x_msg (const unsigned int flags, const char *format, ...)
  */
 
 void error_reset (void);
+
+/* route errors to stderr that would normally go to stdout */
+void errors_to_stderr (void);
+
 void set_suppress_timestamps (bool suppressed);
 
 #define SDL_CONSTRAIN (1<<0)
@@ -198,7 +203,7 @@ const char *msg_flags_string (const unsigned int flags, struct gc_arena *gc);
 /*
  * File to print messages to before syslog is opened.
  */
-FILE *msg_fp(void);
+FILE *msg_fp(const unsigned int flags);
 
 /* Fatal logic errors */
 #define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__); } while (false)
