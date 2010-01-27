@@ -82,7 +82,7 @@ common_C_INCLUDES += \
 	external/openssl/crypto \
 	external/lzo/include
 
-# common_SHARED_LIBRARIES += libengines
+common_SHARED_LIBRARIES := 
 
 ifneq ($(TARGET_SIMULATOR),true)
 	common_SHARED_LIBRARIES += libdl
