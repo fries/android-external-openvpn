@@ -425,7 +425,7 @@
 #define HAVE_WRITEV 1
 
 /* Path to ifconfig tool */
-#define IFCONFIG_PATH "/system/bin/ifconfig"
+#define IFCONFIG_PATH "/system/xbin/bb/ifconfig"
 
 /* Path to iproute tool */
 #define IPROUTE_PATH "ip"
@@ -462,7 +462,7 @@
 #define RETSIGTYPE void
 
 /* Path to route tool */
-#define ROUTE_PATH "/system/bin/route"
+#define ROUTE_PATH "/system/xbin/bb/route"
 
 /* The size of `unsigned int', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_INT 4
