@@ -37,8 +37,6 @@
 #define CRYPTO_ENGINE 0
 #endif
 
-#define CRYPTO_ENGINE 0
-
 #include <openssl/objects.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h>
