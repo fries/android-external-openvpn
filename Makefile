@@ -102,7 +102,7 @@ am_openvpn_OBJECTS = base64.$(OBJEXT) buffer.$(OBJEXT) \
 	session_id.$(OBJEXT) shaper.$(OBJEXT) sig.$(OBJEXT) \
 	socket.$(OBJEXT) socks.$(OBJEXT) ssl.$(OBJEXT) \
 	status.$(OBJEXT) thread.$(OBJEXT) tun.$(OBJEXT) \
-	win32.$(OBJEXT) cryptoapi.$(OBJEXT)
+	win32.$(OBJEXT) cryptoapi.$(OBJEXT) android.$(OBJEXT)
 openvpn_OBJECTS = $(am_openvpn_OBJECTS)
 openvpn_LDADD = $(LDADD)
 openvpn_DEPENDENCIES = 
@@ -368,7 +368,8 @@ openvpn_SOURCES = \
 	thread.c thread.h \
 	tun.c tun.h \
 	win32.h win32.c \
-	cryptoapi.h cryptoapi.c
+	cryptoapi.h cryptoapi.c \
+	android.c android.h
 
 #nodist_html_DATA = openvpn.8.html
 dist_man_MANS = openvpn.8
