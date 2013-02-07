@@ -8,7 +8,7 @@
 #define CONFIGURE_PF 1
 
 /* enable iproute2 support */
-/* #undef CONFIG_FEATURE_IPROUTE */
+/* #define CONFIG_FEATURE_IPROUTE 1 */
 
 /* Use memory debugging function in OpenSSL */
 /* #undef CRYPTO_MDEBUG */
