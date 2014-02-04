@@ -28,6 +28,7 @@
 #include "forward.h"
 #include "multi.h"
 #include "win32.h"
+#include "android.h"
 
 #include "memdbg.h"
 
@@ -134,6 +135,10 @@ main (int argc, char *argv[])
 	  c.es = env_set_create (NULL);
 #ifdef WIN32
 	  env_set_add_win32 (c.es);
+#endif
+
+#ifdef ANDROID
+	  env_set_add_android (c.es);
 #endif
 
 #ifdef ENABLE_MANAGEMENT

@@ -72,7 +72,8 @@ common_SRC_FILES:= \
 	tun.c tun.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c \
-	missing.c
+	missing.c \
+	android.c android.h
 
 #common_CFLAGS += -DNO_WINDOWS_BRAINDEATH 
 
