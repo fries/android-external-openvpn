@@ -6,73 +6,7 @@ LOCAL_PATH:= $(call my-dir)
 # missing.c defines undefined functions.
 # in tun.c replace /dev/net/tun with /dev/tun
 
-common_SRC_FILES:= \
-        base64.c base64.h \
-	basic.h \
-	buffer.c buffer.h \
-	circ_list.h \
-	common.h \
-	crypto.c crypto.h \
-	dhcp.c dhcp.h \
-	errlevel.h \
-	error.c error.h \
-	event.c event.h \
-	fdmisc.c fdmisc.h \
-        forward.c forward.h forward-inline.h \
-	fragment.c fragment.h \
-	gremlin.c gremlin.h \
-	helper.c helper.h \
-	lladdr.c lladdr.h \
-	init.c init.h \
-	integer.h \
-        interval.c interval.h \
-	list.c list.h \
-	lzo.c lzo.h \
-	manage.c manage.h \
-	mbuf.c mbuf.h \
-        memdbg.h \
-	misc.c misc.h \
-	mroute.c mroute.h \
-	mss.c mss.h \
-	mtcp.c mtcp.h \
-	mtu.c mtu.h \
-	mudp.c mudp.h \
-	multi.c multi.h \
-        ntlm.c ntlm.h \
-	occ.c occ.h occ-inline.h \
-	pkcs11.c pkcs11.h \
-	openvpn.c openvpn.h \
-	openvpn-plugin.h \
-	options.c options.h \
-	otime.c otime.h \
-	packet_id.c packet_id.h \
-	perf.c perf.h \
-	pf.c pf.h pf-inline.h \
-	ping.c ping.h ping-inline.h \
-	plugin.c plugin.h \
-	pool.c pool.h \
-	proto.c proto.h \
-	proxy.c proxy.h \
-	ieproxy.h ieproxy.c \
-        ps.c ps.h \
-	push.c push.h \
-	pushlist.h \
-	reliable.c reliable.h \
-	route.c route.h \
-	schedule.c schedule.h \
-	session_id.c session_id.h \
-	shaper.c shaper.h \
-	sig.c sig.h \
-	socket.c socket.h \
-	socks.c socks.h \
-	ssl.c ssl.h \
-	status.c status.h \
-	syshead.h \
-	thread.c thread.h \
-	tun.c tun.h \
-	win32.h win32.c \
-	cryptoapi.h cryptoapi.c \
-	missing.c
+common_SRC_FILES := $(call all-c-files-under, $(LOCAL_PATH) )
 
 #common_CFLAGS += -DNO_WINDOWS_BRAINDEATH 
 
@@ -80,7 +14,8 @@ common_C_INCLUDES += \
 	$(LOCAL_PATH)/../openssl \
 	$(LOCAL_PATH)/../openssl/include \
 	$(LOCAL_PATH)/../openssl/crypto \
-	$(LOCAL_PATH)/../liblzo/include
+	$(LOCAL_PATH)/../liblzo/include \
+	$(LOCAL_PATH)
 
 common_SHARED_LIBRARIES := 
 
